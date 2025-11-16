@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blum Blum Shub Random Number Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Prism.js CSS (for code highlighting) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <style>
+        /* Basic reset and scroll-snap container */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Hide main scrollbar */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0f172a; /* bg-slate-900 */
+        }
+        .slides-container {
+            width: 100vw;
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            
+            /* Base slide styling */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            box-sizing: border-box; /* Ensures padding doesn't break layout */
+            
+            /* Theme */
+            background-color: #f8fafc; /* bg-slate-50 */
+            color: #1e293b; /* bg-slate-800 */
+        }
+        
+        /* Specific slide themes */
+        .slide-title {
+            background-color: #1e293b; /* bg-slate-800 */
+            color: #f8fafc; /* bg-slate-50 */
+        }
+        .slide-code {
+            /* Allow code to be left-aligned and take more space */
+            align-items: flex-start;
+            padding: 2rem 4rem;
+        }
+
+        /* Responsive text */
+        .slide h1 {
+            font-size: 3rem; /* 48px */
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .slide h2 {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #4f46e5; /* indigo-600 */
+        }
+        .slide p, .slide li {
+            font-size: 1.5rem; /* 24px */
+            line-height: 1.6;
+            max-width: 800px;
+        }
+        .slide ul {
+            list-style-type: disc;
+            list-style-position: inside;
+            margin-top: 1rem;
+        }
+        .slide li {
+            margin-top: 0.75rem;
+        }
+        
+        /* Code block styling */
+        pre[class*="language-"] {
+            width: 100%;
+            max-width: 1200px;
+            max-height: 75vh;
+            overflow: auto !important;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+        }
+
+        /* Math-like text */
+        .math {
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+            color: #374151; /* slate-700 */
+            font-weight: 500;
+        }
+        .formula {
+            font-family: 'Courier New', Courier, monospace;
+            background: #e2e8f0; /* slate-200 */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 1.25rem;
+        }
+        
+        /* Navigation Buttons */
+        .nav-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            width: 3.5rem;
+            height: 3.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-button:hover {
+            background-color: #4338ca; /* indigo-700 */
+            transform: scale(1.05);
+        }
+        .nav-button#prev-slide {
+            right: 7rem;
+            background-color: #64748b; /* slate-500 */
+        }
+        .nav-button#prev-slide:hover {
+            background-color: #475569; /* slate-600 */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="slides-container">
+        
+        <!-- Slide 0: Title -->
+        <section id="slide-0" class="slide slide-title">
+            <h1 class="text-6xl font-bold text-indigo-400">The Blum Blum Shub (BBS) Algorithm</h1>
+            <p class="text-3xl mt-4 text-slate-300">A Cryptographically Secure Pseudorandom Number Generator</p>
+            <p class="text-3xl mt-4 text-slate-300">Jihyung Kim (Jay)</p>
+        </section>
+        
+        <!-- Slide 1: Table of Contents -->
+        <section id="slide-1" class="slide">
+            <div>
+                <h1 class="text-5xl font-bold mb-8 text-center">Table of Contents</h1>
+                <ul class="toc-list space-y-2">
+                    <li onclick="goToSlide(2)"><span class="num">1.</span> Introduction</li>
+                    <li onclick="goToSlide(4)"><span class="num">2.</span> Mathematical Foundations</li>
+                    <li onclick="goToSlide(6)"><span class="num">3.</span> The BBS Algorithm</li>
+                    <li onclick="goToSlide(8)"><span class="num">4.</span> Proof of Cryptographic Strength</li>
+                    <li onclick="goToSlide(10)"><span class="num">5.</span> Computational Analysis</li>
+                    <li onclick="goToSlide(11)"><span class="num">6.</span> Conclusion</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 2: Origin -->
+        <section id="slide-2" class="slide">
+            <div>
+                <h2 class="text-center">1. Origin and Context</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        <strong>Who:</strong> Developed by researchers Lenore Blum, Manuel Blum and Michael Shub.
+                    </li>
+                    <li>
+                        <strong>When:</strong> Published in their 1986 paper, "A Simple Unpredictable Pseudo-Random Number Generator".
+                    </li>
+                    <li>
+                        <strong>Why:</strong> The goal was to create a generator whose security was provably based on a well-known, hard-to-solve mathematical problem.
+                    </li>
+                    <li>
+                        <strong>Significance:</strong> It directly linked the intractability of the Quadratic Residuosity Problem (and thus integer factorization) to cryptographic security.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 3: Intro to Main -->
+        <section id="slide-3" class="slide">
+            <div>
+                <h2 class="text-center">1. What is "Cryptographically Secure" Randomness?</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        <strong>Indistinguishable:</strong> An attacker cannot distinguish the output sequence from a truly random sequence.
+                    </li>
+                    <li>
+                        <strong>Unpredictable:</strong> Given a sequence of bits, an attacker cannot predict the next bit with an accuracy better than 50%.
+                    </li>
+                    <li>
+                        <strong>Grounded in Hard Problems:</strong> Its security must rely on the computational difficulty of a known mathematical problem.
+                    </li>
+
+
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 4: Blum Integers -->
+        <section id="slide-4" class="slide">
+            <div>
+                <h2>2. The Modulus <span class="math">M</span>: Blum Integers</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        A Blum Integer <span class="math">M</span> is the product of two large, distinct prime numbers, <span class="math">p</span> and <span class="math">q</span>.
+                    </li>
+                    <li>
+                        <strong>Congruence:</strong> Both <span class="math">p</span> and <span class="math">q</span> must be congruent to 3 modulo 4.
+                    </li>
+                    <li class="text-center mt-8">
+                        <span class="formula text-2xl">p ≡ 3 (mod 4), q ≡ 3 (mod 4)</span>
+                    </li>
+                    <li class="text-center mt-4">
+                        <span class="formula text-2xl">M = p * q</span>
+                    </li>
+                    <li>
+                        <strong>Safe Prime:</strong> Both <span class="math">p</span> and <span class="math">q</span> must be safe primes.
+                    </li>
+                    
+                    <li class="text-center mt-8">
+                        <span class="formula text-2xl">(p-1)/2 → Prime, (q-1)/2 → Prime</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 5: Parameter Selection -->
+        <section id="slide-5" class="slide">
+            <div>
+                <h2>2. Parameter Selection</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        <strong>Security:</strong> Relies on the difficulty of factoring <span class="math">M</span>. This is the <strong>Integer Factorization Problem</strong>. <span class="math">p</span> and <span class="math">q</span> must be large (1024+ bits each).
+                    </li>
+                    <li>
+                        <strong>Cycle Length:</strong> To guarantee a long cycle, <span class="formula">gcd((p-3)/2, (q-3)/2)</span> should be small.
+                    </li>
+                    <li>
+                        <strong>The Seed (<span class="math">x₀</span>):</strong> An initial seed <span class="math">seed</span> is chosen, where <span class="math">seed > 1</span>. The starting state is:
+                        <br>
+                        <span class="block text-center mt-4 formula">x₀ = seed² mod M</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 6: The Algorithm -->
+        <section id="slide-6" class="slide">
+            <div>
+                <h2 class="text-center">3. The Blum Blum Shub Algorithm</h2>
+                <div class="mt-6 space-y-6">
+                    <div>
+                        <h3 class="text-2xl font-semibold">1. Initialization:</h3>
+                        <p class="formula mt-2">x₀ = seed² mod M</p>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold">2. Iteration:</h3>
+                        <p class="formula mt-2">xᵢ₊₁ = xᵢ² mod M</p>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold">3. Bit Extraction:</h3>
+                        <p>The <span class="math">i</span>-th output bit <span class="math">bᵢ</span> is the least significant bit (LSB) of <span class="math">xᵢ</span>.</p>
+                        <p class="formula mt-2">bᵢ = xᵢ mod 2</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Slide 7: Julia Code -->
+        <section id="slide-7" class="slide slide-code">
+            <div>
+                <h2>3. Julia Implementation</h2>
+                <pre class="mt-4"><code class="language-julia">
+using Primes
+
+function BBS(p::BigInt, q::BigInt, seed::BigInt, num_bits::Int64)
+    """
+    Generates a sequence of random bits using the Blum Blum Shub (BBS) algorithm.
+
+    Args:
+        p::BigInt: A large safe prime number such that p ≡ 3 (mod 4).
+        q::BigInt: A large safe prime number distinct from p such that q ≡ 3 (mod 4).
+        seed::BigInt: An initial seed value (x₀), relatively prime to n = p*q.
+        num_bits::Integer: The number of random bits to generate.
+
+    Returns:
+        BitVector: A BitVector containing the generated random bits.
+
+    Raises:
+        Error: If input parameters are invalid .
+    """
+
+    # 1. Input Validation
+    if p % 4 != 3 || q % 4 != 3
+        error("p and q must be congruent to 3 modulo 4.")
+    end
+    
+    if !isprime(p) || !isprime(q) || !isprime((p-1) ÷ 2) || !isprime((q-1) ÷ 2)
+        error("p,q,(p-1)/2,(q-1)/2 must be prime numbers.")
+    end
+
+    n = p * q
+
+    if gcd(seed, n) != 1
+        error("Seed must be relatively prime to n = p*q.")
+    end
+    if seed <= 0
+        error("Seed must be a positive integer.")
+    end
+    if num_bits <= 0
+        error("num_bits must be a positive integer.")
+    end
+
+    # 2. Initialize State
+    x = seed
+    bits = BitVector(undef, num_bits) # Efficiently store bits
+
+    # 3. BBS Iteration and Bit Extraction
+    for i in 1:num_bits
+        x = (x * x) % n  # BBS state update: x_{i+1} = x_i^2 mod n
+        bits[i] = x % 2 == 1 # Extract the least significant bit (LSB) as the random bit
+    end
+
+    return bits
+end
+
+# Example Usage:
+# Choose large primes p and q congruent to 3 mod 4.
+# p is the smallest safe prime after 1000^103
+p = BigInt(1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001408267)
+# q is the smallest safe prime after 1000^102
+q = BigInt(1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000933859)
+
+# Choose a seed relatively prime to n = p*q
+# seed ≈ 2 * 1000^102
+seed = BigInt(2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420063)
+
+num_bits = 10 # Number of random bits to generate
+
+random_bits = BBS(p, q, seed, num_bits)
+
+println("GCD of (p-3)/2, (q-3)/2) is : ", gcd(((p-3) ÷ 2), (q-3) ÷ 2))
+println("Generated BBS Random Bits:", random_bits)
+
+# You can convert the BitVector to other formats if needed. example with an array of 0s and 1s:
+random_bit_array = Int.(random_bits)
+println("As an Array of Integers (0 and 1):",random_bit_array)
+
+# To get a random number from these bits, you could interpret them as a binary number.
+# For example,
+function bits_to_int(bit_vector::BitVector)
+    value = BigInt(0)
+    power_of_2 = BigInt(1)
+    for bit in reverse(bit_vector) # Process from least significant to most significant
+        if bit
+            value += power_of_2
+        end
+        power_of_2 *= 2
+    end
+    return value
+end
+
+random_integer = bits_to_int(random_bits)
+
+println("As a Random Integer: " ,random_integer)
+</code></pre>
+            </div>
+        </section>
+
+        <!-- Slide 8: The Hard Problem: QRP -->
+        <section id="slide-8" class="slide">
+            <div>
+                <h2 class="text-center">4. The Hard Problem: QRP</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        <strong>QRP</strong> stands for the <strong>Quadratic Residuosity Problem</strong>.
+                    </li>
+                    <li>
+                        <strong>Definition:</strong> An integer <span class="math">x</span> is a <strong>Quadratic Residue (QR)</strong> modulo <span class="math">M</span> if there exists an integer <span class="math">y</span> such that:
+                        <br>
+                        <span class="block text-center mt-4 formula">y² ≡ x (mod M)</span>
+                    </li>
+                    <li>
+                        If no such <span class="math">y</span> exists, <span class="math">x</span> is a <strong>Quadratic Non-Residue (QNR)</strong>.
+                    </li>
+                    <li>
+                        <strong>The Problem:</strong> Given a Blum Integer <span class="math">M</span> (whose factors <span class="math">p</span>, <span class="math">q</span> are secret) and an integer <span class="math">x</span>, it is computationally infeasible to determine if <span class="math">x</span> is a QR or a QNR.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 9: QRP Example & The BBS Link -->
+        <section id="slide-9" class="slide">
+            <div>
+                <h2 class="text-center">4. QRP Example & Connection to BBS</h2>
+                
+                <div class="grid grid-cols-2 gap-10 mt-6">
+                    
+                    <!-- Left Column: Example -->
+                    <div>
+                        <h3 class="text-2xl font-semibold mb-3">Example: M = 21</h3>
+                        <p class="text-xl">Let <span class="math">M = 3 * 7 = 21</span>. The set of squares (QR) is:</p>
+                        <p class="formula mt-3 text-center">{1, 4, 7, 9, 15, 16, 18}</p>
+                        
+                        <ul class="text-xl mt-4 list-none space-y-2">
+                            <li>
+                                <strong>Problem 1:</strong> Is <span class="math">x = 16</span> a QR mod 21?
+                                <br>&rarr; <span class="text-green-600 font-semibold">Yes</span>, because <span class="formula">4² ≡ 16 (mod 21)</span>.
+                            </li>
+                            <li class="mt-4">
+                                <strong>Problem 2:</strong> Is <span class="math">x = 5</span> a QR mod 21?
+                                <br>&rarr; <span class="text-red-600 font-semibold">No</span>, no integer <span class="math">y</span> exists such that <span class="formula">y² ≡ 5 (mod 21)</span>.
+                            </li>
+                        </ul>
+                         <p class="text-xl mt-4"><strong>The Catch:</strong> This is easy for <span class="math">M=21</span>. It's considered infeasible for a 2048-bit <span class="math">M</span> if you don't know its factors.</p>
+                    </div>
+                    
+                    <!-- Right Column: The Link -->
+                    <div>
+                        <h3 class="text-2xl font-semibold mb-3">The Link to BBS</h3>
+                        <ul class="text-xl mt-4 list-disc list-inside space-y-4">
+                            <li>The BBS sequence <span class="formula">xᵢ₊₁ = xᵢ² mod M</span> only generates quadratic residues.</li>
+                            <li>The output bits (<span class.math">bᵢ</span>) are the LSB of these QRs.</li>
+                            <li class="font-semibold mt-4">In short: <strong>Predicting BBS bits is proven to be as hard as solving QRP.</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Slide 10: Computation problems -->
+        <section id="slide-10" class="slide">
+            <div>
+                <h2>5. Computational Analysis: The Barrier</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        <strong>The Bottleneck:</strong> The core operation <span class="formula">xᵢ₊₁ = xᵢ² mod M</span>.
+                    </li>
+                    <li>
+                        <strong>The Problem:</strong> For security, <span class="math">M</span> must be huge (e.g., 2048-4096 bits). This means <span class="math">xᵢ</span> is also huge.
+                    </li>
+                    <li>
+                        Squaring a 2048-bit number results in a 4096-bit number before the modulo.
+                    </li>
+                    <li>
+                        <strong>Multi-Precision Arithmetic:</strong> Standard 64-bit CPUs cannot handle these numbers directly. This requires specialized software such as BigInt.
+                    </li>
+                    <li>
+                        <strong>Result:</strong> BBS is <strong>very slow</strong> compared to non-provably-secure generators (like ChaCha20 or AES-CTR).
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 11: Conclusion -->
+        <section id="slide-11" class="slide">
+            <div>
+                <h2 class="text-center">6. Conclusion</h2>
+                <ul class="mt-6 space-y-4">
+                    <li>
+                        BBS is a foundational <strong>provably secure</strong> pseudorandom number generator.
+                    </li>
+                    <li>
+                        Its security is directly based on the difficulty of the <strong>Quadratic Residuosity Problem</strong>.
+                    </li>
+                    <li>
+                        It is <strong>computationally expensive</strong> (slow) due to its reliance on multi-precision arithmetic.
+                    </li>
+                    <li>
+                        Its value is in its theoretical strength, forming a basis for cryptographic proofs and protocols.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Slide 12: Info -->        
+        <section id="slide-12" class="slide">
+            <div>
+                <h2 class="text-center">Qusetion & Answer</h2>
+                <p class="text-center text-3xl mt-12 font-semibold">Thank you.</p>
+                <p class="text-center text-3xl mt-12 font-semibold">For any additional questions, please reach out to: awesomepeoplefund@gmail.com</p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Navigation Buttons -->
+    <button id="prev-slide" class="nav-button" title="Previous Slide (Up/Left Arrow)">
+        &#8593;
+    </button>
+    <button id="next-slide" class="nav-button" title="Next Slide (Down/Right Arrow)">
+        &#8595;
+    </button>
+
+    <!-- Prism.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <!-- Navigation Script -->
+    <script>
+        // Define navigation variables in a scope accessible to all functions
+        let container;
+        let totalSlides;
+        let currentSlide = 0;
+
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            
+            currentSlide = index;
+            const scrollTop = window.innerHeight * currentSlide;
+            container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                goToSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                goToSlide(currentSlide);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            container = document.querySelector('.slides-container');
+            totalSlides = document.querySelectorAll('.slide').length;
+            
+            const nextBtn = document.getElementById('next-slide');
+            const prevBtn = document.getElementById('prev-slide');
+
+            nextBtn.addEventListener('click', nextSlide);
+            prevBtn.addEventListener('click', prevSlide);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                    e.preventDefault();
+                    prevSlide();
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    goToSlide(0); // Go to first slide
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    goToSlide(totalSlides - 1); // Go to last slide
+                }
+            });
+
+            // Update current slide on scroll
+            // This ensures if user scrolls manually, the index is updated.
+            let scrollTimeout;
+            container.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    currentSlide = Math.round(container.scrollTop / window.innerHeight);
+                }, 100); // Debounce to avoid excessive updates
+            });
+        });
+    </script>
+
+</body>
+</html>
